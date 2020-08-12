@@ -1,5 +1,4 @@
 ﻿using System;
-
 using JsonApiFramework;
 using JsonApiFramework.Http;
 using JsonApiFramework.Server;

@@ -1,7 +1,5 @@
 ﻿using System;
 
-using JsonApiFramework;
-
 namespace HelloWorld
 {
     public enum SupportLife

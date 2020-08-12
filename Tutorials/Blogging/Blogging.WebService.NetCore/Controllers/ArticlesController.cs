@@ -1,17 +1,29 @@
-﻿using System;
-using System.Linq;
-
+﻿using Blogging.ServiceModel;
+using Exceptionless;
 using JsonApiFramework;
 using JsonApiFramework.JsonApi;
 using JsonApiFramework.Server;
-
-using Microsoft.ApplicationInsights.AspNetCore.Extensions;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http.Extensions;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
+using System;
+using System.Linq;
 
 namespace Blogging.WebService.Controllers
 {
-    public class ArticlesController : Controller
+    [ApiController]
+    public class ArticlesController : ControllerBase
     {
+        private readonly ILogger _logger;
+        private readonly IHttpContextAccessor _httpContextAccessor;
+
+        public ArticlesController(ILogger<ArticlesController> logger, IHttpContextAccessor httpContextAccessor)
+        {
+            _logger = logger;
+            _httpContextAccessor = httpContextAccessor;
+        }
+
         #region WebApi Methods
         [HttpGet("articles")]
         public Document GetCollection()
@@ -47,62 +59,61 @@ namespace Blogging.WebService.Controllers
             /////////////////////////////////////////////////////
             // Build JSON API document
             /////////////////////////////////////////////////////
-            var currentRequestUri = this.Request.GetUri();
-            using (var documentContext = new BloggingDocumentContext(currentRequestUri))
-            {
-                var document = documentContext
-                    .NewDocument(currentRequestUri)
-                        .SetJsonApiVersion(JsonApiVersion.Version10)
+            var displayUrl = _httpContextAccessor.HttpContext.Request.GetDisplayUrl();
+            var currentRequestUri = new Uri(displayUrl);
+            using var documentContext = new BloggingDocumentContext(currentRequestUri);
+            var document = documentContext
+                .NewDocument(currentRequestUri)
+                    .SetJsonApiVersion(JsonApiVersion.Version10)
+                    .Links()
+                        .AddUpLink()
+                        .AddSelfLink()
+                    .LinksEnd()
+                    .ResourceCollection(articles)
+                        .Relationships()
+                            .AddRelationship("blog", new[] { Keywords.Related })
+                            .AddRelationship("author", new[] { Keywords.Related })
+                            .AddRelationship("comments", new[] { Keywords.Related })
+                        .RelationshipsEnd()
                         .Links()
-                            .AddUpLink()
                             .AddSelfLink()
                         .LinksEnd()
-                        .ResourceCollection(articles)
-                            .Relationships()
-                                .AddRelationship("blog", new[] { Keywords.Related })
-                                .AddRelationship("author", new[] { Keywords.Related })
-                                .AddRelationship("comments", new[] { Keywords.Related })
-                            .RelationshipsEnd()
+                    .ResourceCollectionEnd()
+                    .Included()
+                        // article => blog (to-one)
+                        .Include(articleToBlogIncludedResourceCollection)
                             .Links()
                                 .AddSelfLink()
                             .LinksEnd()
-                        .ResourceCollectionEnd()
-                        .Included()
-                            // article => blog (to-one)
-                            .Include(articleToBlogIncludedResourceCollection)
-                                .Links()
-                                    .AddSelfLink()
-                                .LinksEnd()
-                            .IncludeEnd()
+                        .IncludeEnd()
 
-                            // article => author (to-one)
-                            .Include(articleToAuthorIncludedResourceCollection)
-                                .Links()
-                                    .AddSelfLink()
-                                .LinksEnd()
-                            .IncludeEnd()
+                        // article => author (to-one)
+                        .Include(articleToAuthorIncludedResourceCollection)
+                            .Links()
+                                .AddSelfLink()
+                            .LinksEnd()
+                        .IncludeEnd()
 
-                            // article => comments (to-many)
-                            .Include(articleToCommentsIncludedResourcesCollection)
-                                .Relationships()
-                                    .AddRelationship("author", new[] { Keywords.Related })
-                                .RelationshipsEnd()
-                                .Links()
-                                    .AddLink(Keywords.Self)
-                                .LinksEnd()
-                            .IncludeEnd()
+                        // article => comments (to-many)
+                        .Include(articleToCommentsIncludedResourcesCollection)
+                            .Relationships()
+                                .AddRelationship("author", new[] { Keywords.Related })
+                            .RelationshipsEnd()
+                            .Links()
+                                .AddLink(Keywords.Self)
+                            .LinksEnd()
+                        .IncludeEnd()
 
-                            // comment => author (to-one)
-                            .Include(commentToAuthorIncludedResourceCollection)
-                                .Links()
-                                    .AddSelfLink()
-                                .LinksEnd()
-                            .IncludeEnd()
-                        .IncludedEnd()
-                    .WriteDocument();
+                        // comment => author (to-one)
+                        .Include(commentToAuthorIncludedResourceCollection)
+                            .Links()
+                                .AddSelfLink()
+                            .LinksEnd()
+                        .IncludeEnd()
+                    .IncludedEnd()
+                .WriteDocument();
 
-                return document;
-            }
+            return document;
         }
 
         [HttpGet("articles/{id}")]
@@ -127,62 +138,61 @@ namespace Blogging.WebService.Controllers
             /////////////////////////////////////////////////////
             // Build JSON API document
             /////////////////////////////////////////////////////
-            var currentRequestUri = this.Request.GetUri();
-            using (var documentContext = new BloggingDocumentContext(currentRequestUri))
-            {
-                var document = documentContext
-                    .NewDocument(currentRequestUri)
-                        .SetJsonApiVersion(JsonApiVersion.Version10)
+            var displayUrl = _httpContextAccessor.HttpContext.Request.GetDisplayUrl();
+            var currentRequestUri = new Uri(displayUrl);
+            using var documentContext = new BloggingDocumentContext(currentRequestUri);
+            var document = documentContext
+                .NewDocument(currentRequestUri)
+                    .SetJsonApiVersion(JsonApiVersion.Version10)
+                    .Links()
+                        .AddUpLink()
+                        .AddSelfLink()
+                    .LinksEnd()
+                    .Resource(article)
+                        .Relationships()
+                            .AddRelationship("blog", new[] { Keywords.Related })
+                            .AddRelationship("author", new[] { Keywords.Related })
+                            .AddRelationship("comments", new[] { Keywords.Related })
+                        .RelationshipsEnd()
                         .Links()
-                            .AddUpLink()
                             .AddSelfLink()
                         .LinksEnd()
-                        .Resource(article)
-                            .Relationships()
-                                .AddRelationship("blog", new[] { Keywords.Related })
-                                .AddRelationship("author", new[] { Keywords.Related })
-                                .AddRelationship("comments", new[] { Keywords.Related })
-                            .RelationshipsEnd()
+                    .ResourceEnd()
+                    .Included()
+                        // article => blog (to-one)
+                        .Include(articleToBlogIncludedResource)
                             .Links()
                                 .AddSelfLink()
                             .LinksEnd()
-                        .ResourceEnd()
-                        .Included()
-                            // article => blog (to-one)
-                            .Include(articleToBlogIncludedResource)
-                                .Links()
-                                    .AddSelfLink()
-                                .LinksEnd()
-                            .IncludeEnd()
+                        .IncludeEnd()
 
-                            // article => author (to-one)
-                            .Include(articleToAuthorIncludedResource)
-                                .Links()
-                                    .AddSelfLink()
-                                .LinksEnd()
-                            .IncludeEnd()
+                        // article => author (to-one)
+                        .Include(articleToAuthorIncludedResource)
+                            .Links()
+                                .AddSelfLink()
+                            .LinksEnd()
+                        .IncludeEnd()
 
-                            // article => comments (to-many)
-                            .Include(articleToCommentsIncludedResources)
-                                .Relationships()
-                                    .AddRelationship("author", new[] { Keywords.Related })
-                                    .RelationshipsEnd()
-                                .Links()
-                                    .AddLink(Keywords.Self)
-                                .LinksEnd()
-                            .IncludeEnd()
+                        // article => comments (to-many)
+                        .Include(articleToCommentsIncludedResources)
+                            .Relationships()
+                                .AddRelationship("author", new[] { Keywords.Related })
+                                .RelationshipsEnd()
+                            .Links()
+                                .AddLink(Keywords.Self)
+                            .LinksEnd()
+                        .IncludeEnd()
 
-                            // comment => author (to-one)
-                            .Include(commentToAuthorIncludedResourceCollection)
-                                .Links()
-                                    .AddSelfLink()
-                                .LinksEnd()
-                            .IncludeEnd()
-                        .IncludedEnd()
-                    .WriteDocument();
+                        // comment => author (to-one)
+                        .Include(commentToAuthorIncludedResourceCollection)
+                            .Links()
+                                .AddSelfLink()
+                            .LinksEnd()
+                        .IncludeEnd()
+                    .IncludedEnd()
+                .WriteDocument();
 
-                return document;
-            }
+            return document;
         }
 
         [HttpGet("articles/{id}/blog")]
@@ -196,28 +206,27 @@ namespace Blogging.WebService.Controllers
             /////////////////////////////////////////////////////
             // Build JSON API document
             /////////////////////////////////////////////////////
-            var currentRequestUri = this.Request.GetUri();
-            using (var documentContext = new BloggingDocumentContext(currentRequestUri))
-            {
-                var document = documentContext
-                    .NewDocument(currentRequestUri)
-                        .SetJsonApiVersion(JsonApiVersion.Version10)
+            var displayUrl = _httpContextAccessor.HttpContext.Request.GetDisplayUrl();
+            var currentRequestUri = new Uri(displayUrl);
+            using var documentContext = new BloggingDocumentContext(currentRequestUri);
+            var document = documentContext
+                .NewDocument(currentRequestUri)
+                    .SetJsonApiVersion(JsonApiVersion.Version10)
+                    .Links()
+                        .AddUpLink()
+                        .AddSelfLink()
+                    .LinksEnd()
+                    .Resource(articleToBlog)
+                        .Relationships()
+                            .AddRelationship("articles", new[] { Keywords.Related })
+                        .RelationshipsEnd()
                         .Links()
-                            .AddUpLink()
                             .AddSelfLink()
                         .LinksEnd()
-                        .Resource(articleToBlog)
-                            .Relationships()
-                                .AddRelationship("articles", new[] { Keywords.Related })
-                            .RelationshipsEnd()
-                            .Links()
-                                .AddSelfLink()
-                            .LinksEnd()
-                        .ResourceEnd()
-                    .WriteDocument();
+                    .ResourceEnd()
+                .WriteDocument();
 
-                return document;
-            }
+            return document;
         }
 
         [HttpGet("articles/{id}/author")]
@@ -231,29 +240,28 @@ namespace Blogging.WebService.Controllers
             /////////////////////////////////////////////////////
             // Build JSON API document
             /////////////////////////////////////////////////////
-            var currentRequestUri = this.Request.GetUri();
-            using (var documentContext = new BloggingDocumentContext(currentRequestUri))
-            {
-                var document = documentContext
-                    .NewDocument(currentRequestUri)
-                        .SetJsonApiVersion(JsonApiVersion.Version10)
+            var displayUrl = _httpContextAccessor.HttpContext.Request.GetDisplayUrl();
+            var currentRequestUri = new Uri(displayUrl);
+            using var documentContext = new BloggingDocumentContext(currentRequestUri);
+            var document = documentContext
+                .NewDocument(currentRequestUri)
+                    .SetJsonApiVersion(JsonApiVersion.Version10)
+                    .Links()
+                        .AddUpLink()
+                        .AddSelfLink()
+                    .LinksEnd()
+                    .Resource(articleToAuthor)
+                        .Relationships()
+                            .AddRelationship("articles", new[] { Keywords.Related })
+                            .AddRelationship("comments", new[] { Keywords.Related })
+                        .RelationshipsEnd()
                         .Links()
-                            .AddUpLink()
                             .AddSelfLink()
                         .LinksEnd()
-                        .Resource(articleToAuthor)
-                            .Relationships()
-                                .AddRelationship("articles", new[] { Keywords.Related })
-                                .AddRelationship("comments", new[] { Keywords.Related })
-                            .RelationshipsEnd()
-                            .Links()
-                                .AddSelfLink()
-                            .LinksEnd()
-                        .ResourceEnd()
-                    .WriteDocument();
+                    .ResourceEnd()
+                .WriteDocument();
 
-                return document;
-            }
+            return document;
         }
 
         [HttpGet("articles/{id}/comments")]
@@ -267,35 +275,87 @@ namespace Blogging.WebService.Controllers
             /////////////////////////////////////////////////////
             // Build JSON API document
             /////////////////////////////////////////////////////
-            var currentRequestUri = this.Request.GetUri();
-            using (var documentContext = new BloggingDocumentContext(currentRequestUri))
-            {
-                var document = documentContext
-                    .NewDocument(currentRequestUri)
-                        .SetJsonApiVersion(JsonApiVersion.Version10)
+            var displayUrl = _httpContextAccessor.HttpContext.Request.GetDisplayUrl();
+            var currentRequestUri = new Uri(displayUrl);
+            using var documentContext = new BloggingDocumentContext(currentRequestUri);
+            var document = documentContext
+                .NewDocument(currentRequestUri)
+                    .SetJsonApiVersion(JsonApiVersion.Version10)
+                    .Links()
+                        .AddUpLink()
+                        .AddSelfLink()
+                    .LinksEnd()
+                    .ResourceCollection(articleToComments)
+                        .Relationships()
+                            .AddRelationship("article", new[] { Keywords.Related })
+                            .AddRelationship("author", new[] { Keywords.Related })
+                        .RelationshipsEnd()
                         .Links()
-                            .AddUpLink()
                             .AddSelfLink()
                         .LinksEnd()
-                        .ResourceCollection(articleToComments)
-                            .Relationships()
-                                .AddRelationship("article", new[] { Keywords.Related })
-                                .AddRelationship("author", new[] { Keywords.Related })
-                            .RelationshipsEnd()
-                            .Links()
-                                .AddSelfLink()
-                            .LinksEnd()
-                        .ResourceCollectionEnd()
-                    .WriteDocument();
+                    .ResourceCollectionEnd()
+                .WriteDocument();
 
-                return document;
-            }
+            return document;
         }
 
         [HttpPost("articles")]
-        public Document Post([FromBody]Document inDocument)
+        public IActionResult Post([FromBody] Document inDocument)
         {
-            throw new NotImplementedException();
+            var displayUrl = _httpContextAccessor.HttpContext.Request.GetDisplayUrl();
+            var currentRequestUri = new Uri(displayUrl);
+
+            using var bloggingDocumentContext = new BloggingDocumentContext(currentRequestUri, inDocument);
+            var articleResource = bloggingDocumentContext.GetResource<Article>();
+            var article = new Article
+            {
+                ArticleId = RandomData.GetInt(100,1000),
+                Text = articleResource.Text,
+                Title = articleResource.Title
+            };
+
+            /////////////////////////////////////////////////////
+            // Get all relationships for article resouce, then verify the relationship has linkage.
+            /////////////////////////////////////////////////////
+            var resourceRelationships = bloggingDocumentContext.GetResourceRelationships<Article>();
+            var hasRelationshipToAuthor = resourceRelationships.TryGetRelationship("author", out var authorRealtionship);
+            if (hasRelationshipToAuthor && !authorRealtionship.IsResourceLinkageNullOrEmpty())
+            {
+                var authorResourceLinkage = authorRealtionship.GetToOneResourceLinkage();
+                article.AuthorId = long.Parse(authorResourceLinkage.Id);
+            }
+
+            var hasRelationshipToBlog = resourceRelationships.TryGetRelationship("blogs", out var blogsRealtionship);
+            if (hasRelationshipToBlog && !blogsRealtionship.IsResourceLinkageNullOrEmpty())
+            {
+                var blogResourceLinkage = blogsRealtionship.GetToOneResourceLinkage();
+                article.BlogId = long.Parse(blogResourceLinkage.Id);
+            }
+
+            BloggingRepository.AddArticle(article);
+
+            /////////////////////////////////////////////////////
+            // Build JSON API document
+            /////////////////////////////////////////////////////
+            var document = bloggingDocumentContext
+                .NewDocument(currentRequestUri)
+                    .SetJsonApiVersion(JsonApiVersion.Version10)
+                    .Links()
+                        .AddUpLink()
+                        .AddSelfLink()
+                    .LinksEnd()
+                    .Resource(article)
+                        .Relationships()
+                            .AddRelationship("blog", new[] { Keywords.Related })
+                            .AddRelationship("author", new[] { Keywords.Related })
+                            .AddRelationship("comments", new[] { Keywords.Related })
+                        .RelationshipsEnd()
+                        .Links()
+                            .AddSelfLink()
+                        .LinksEnd()
+                    .ResourceEnd()
+                .WriteDocument();
+            return Created(document.GetResource().SelfLink(), document);
         }
 
         [HttpPatch("articles/{id}")]

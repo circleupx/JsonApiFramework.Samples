@@ -1,12 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-
-using JsonApiFramework.JsonApi;
+﻿using JsonApiFramework.JsonApi;
 using JsonApiFramework.Server;
-
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
+using System;
+using System.Collections.Generic;
 
 namespace HelloWorld
 {

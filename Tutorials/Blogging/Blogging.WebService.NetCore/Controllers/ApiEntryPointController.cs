@@ -1,20 +1,30 @@
-﻿using System;
-
-using Blogging.ServiceModel;
-
+﻿using Blogging.ServiceModel;
 using JsonApiFramework.Http;
 using JsonApiFramework.JsonApi;
 using JsonApiFramework.Server;
-
-using Microsoft.ApplicationInsights.AspNetCore.Extensions;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http.Extensions;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
+using System;
 
 namespace Blogging.WebService.Controllers
 {
-    public class ApiEntryPointController : Controller
+    [ApiController]
+    public class ApiEntryPointController : ControllerBase
     {
+        private readonly ILogger _logger;
+        private readonly IHttpContextAccessor _httpContextAccessor;
+
+        public ApiEntryPointController(ILogger<ApiEntryPointController> logger, IHttpContextAccessor httpContextAccessor)
+        {
+            _logger = logger;
+            _httpContextAccessor = httpContextAccessor;
+        }
+
         #region WebApi Methods
-        [HttpGet("")]
+        [Route("")]
+        [HttpGet]
         public Document GetAsync()
         {
             var apiEntryPoint = new ApiEntryPoint
@@ -27,7 +37,8 @@ namespace Blogging.WebService.Controllers
             /////////////////////////////////////////////////////
             // Build JSON API document
             /////////////////////////////////////////////////////
-            var currentRequestUri = this.Request.GetUri();
+            var displayUrl =  _httpContextAccessor.HttpContext.Request.GetDisplayUrl();
+            var currentRequestUri =  new Uri(displayUrl);
 
             var scheme = currentRequestUri.Scheme;
             var host = currentRequestUri.Host;

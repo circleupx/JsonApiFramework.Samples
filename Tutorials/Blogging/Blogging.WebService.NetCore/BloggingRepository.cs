@@ -1,12 +1,8 @@
-﻿using System;
+﻿using Blogging.ServiceModel;
+using Exceptionless;
+using RandomNameGeneratorLibrary;
 using System.Collections.Generic;
 using System.Linq;
-
-using Blogging.ServiceModel;
-
-using Exceptionless;
-
-using RandomNameGeneratorLibrary;
 
 namespace Blogging.WebService
 {
@@ -112,16 +108,40 @@ namespace Blogging.WebService
                                            .ToList();
             return personToComments;
         }
-        #endregion
+
+        public static void AddArticle(Article article) 
+        {
+            Articles.Add(article);
+        }
+
+        public static void AddBlog(Blog blog)
+        {
+            Blogs.Add(blog);
+        }
+
+        public static void AddComment(Comment comment)
+        {
+            Comments.Add(comment);
+        }
+
+        public static void AddPeople(Person person) 
+        {
+            People.Add(person);
+        }
+
+        #endregion Public Methods
 
         #region Private Properties
+
         private static List<Blog> Blogs { get; set; }
         private static List<Article> Articles { get; set; }
         private static List<Comment> Comments { get; set; }
         private static List<Person> People { get; set; }
-        #endregion
+
+        #endregion Private Properties
 
         #region Private Methods
+
         private static void Seed()
         {
             // Create random blogs.
@@ -129,10 +149,10 @@ namespace Blogging.WebService
             for (var i = 1; i <= numberOfBlogs; i++)
             {
                 var blog = new Blog
-                    {
-                        BlogId = i,
-                        Name = RandomData.GetTitleWords()
-                    };
+                {
+                    BlogId = i,
+                    Name = RandomData.GetTitleWords()
+                };
                 Blogs.Add(blog);
             }
 
@@ -143,14 +163,14 @@ namespace Blogging.WebService
             {
                 var firstName = personNameGenerator.GenerateRandomFirstName();
                 var lastName = personNameGenerator.GenerateRandomLastName();
-                var twitter = String.Format("@{0}{1}", firstName.First(), lastName).ToLowerInvariant();
+                var twitter = string.Format("@{0}{1}", firstName.First(), lastName).ToLowerInvariant();
                 var person = new Person
-                    {
-                        PersonId = i,
-                        FirstName = firstName,
-                        LastName = lastName,
-                        Twitter = twitter
-                    };
+                {
+                    PersonId = i,
+                    FirstName = firstName,
+                    LastName = lastName,
+                    Twitter = twitter
+                };
                 People.Add(person);
             }
 
@@ -161,13 +181,13 @@ namespace Blogging.WebService
                 var blogId = RandomData.GetLong(1, numberOfBlogs);
                 var authorId = RandomData.GetLong(1, numberOfPersons);
                 var article = new Article
-                    {
-                        BlogId = blogId,
-                        AuthorId = authorId,
-                        ArticleId = i,
-                        Title = RandomData.GetTitleWords(),
-                        Text = RandomData.GetParagraphs()
-                    };
+                {
+                    BlogId = blogId,
+                    AuthorId = authorId,
+                    ArticleId = i,
+                    Title = RandomData.GetTitleWords(),
+                    Text = RandomData.GetParagraphs()
+                };
                 Articles.Add(article);
             }
 
@@ -178,18 +198,20 @@ namespace Blogging.WebService
                 var articleId = RandomData.GetLong(1, numberOfArticles);
                 var authorId = RandomData.GetLong(1, numberOfPersons);
                 var comment = new Comment
-                    {
-                        ArticleId = articleId,
-                        AuthorId = authorId,
-                        CommentId = i,
-                        Body = RandomData.GetSentence()
-                    };
+                {
+                    ArticleId = articleId,
+                    AuthorId = authorId,
+                    CommentId = i,
+                    Body = RandomData.GetSentence()
+                };
                 Comments.Add(comment);
             }
         }
-        #endregion
+
+        #endregion Private Methods
 
         #region Static Constructor
+
         static BloggingRepository()
         {
             Blogs = new List<Blog>();
@@ -199,6 +221,7 @@ namespace Blogging.WebService
 
             Seed();
         }
-        #endregion
+
+        #endregion Static Constructor
     }
 }

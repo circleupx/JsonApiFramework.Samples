@@ -1,18 +1,17 @@
-﻿using System;
-using System.Diagnostics.Contracts;
-
-using Blogging.ServiceModel;
-
+﻿using Blogging.ServiceModel;
 using JsonApiFramework;
 using JsonApiFramework.Http;
 using JsonApiFramework.JsonApi;
 using JsonApiFramework.Server;
+using System;
+using System.Diagnostics.Contracts;
 
 namespace Blogging.WebService
 {
     public class BloggingDocumentContext : DocumentContext
     {
         #region Constructors
+
         public BloggingDocumentContext(Uri currentRequestUri)
         {
             Contract.Requires(currentRequestUri != null);
@@ -29,9 +28,11 @@ namespace Blogging.WebService
             var urlBuilderConfiguration = CreateUrlBuilderConfiguration(currentRequestUri);
             this.UrlBuilderConfiguration = urlBuilderConfiguration;
         }
-        #endregion
+
+        #endregion Constructors
 
         #region DocumentContext Overrides
+
         protected override void OnConfiguring(IDocumentContextOptionsBuilder optionsBuilder)
         {
             Contract.Requires(optionsBuilder != null);
@@ -44,13 +45,17 @@ namespace Blogging.WebService
             optionsBuilder.UseServiceModel(serviceModel);
             optionsBuilder.UseUrlBuilderConfiguration(urlBuilderConfiguration);
         }
-        #endregion
+
+        #endregion DocumentContext Overrides
 
         #region Properties
+
         private IUrlBuilderConfiguration UrlBuilderConfiguration { get; set; }
-        #endregion
+
+        #endregion Properties
 
         #region Methods
+
         private static UrlBuilderConfiguration CreateUrlBuilderConfiguration(Uri currentRequestUri)
         {
             Contract.Requires(currentRequestUri != null);
@@ -61,6 +66,7 @@ namespace Blogging.WebService
             var urlBuilderConfiguration = new UrlBuilderConfiguration(scheme, host, port);
             return urlBuilderConfiguration;
         }
-        #endregion
+
+        #endregion Methods
     }
 }

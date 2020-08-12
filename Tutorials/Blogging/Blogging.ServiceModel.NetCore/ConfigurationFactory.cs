@@ -1,5 +1,4 @@
 ﻿using Blogging.ServiceModel.Configurations;
-
 using JsonApiFramework.Conventions;
 using JsonApiFramework.ServiceModel;
 using JsonApiFramework.ServiceModel.Configuration;

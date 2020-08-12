@@ -1,15 +1,25 @@
 ﻿using System;
-
 using JsonApiFramework.JsonApi;
 using JsonApiFramework.Server;
-
-using Microsoft.ApplicationInsights.AspNetCore.Extensions;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http.Extensions;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
 
 namespace Blogging.WebService.Controllers
 {
-    public class PeopleController : Controller
+    [ApiController]
+    public class PeopleController : ControllerBase
     {
+        private readonly ILogger _logger;
+        private readonly IHttpContextAccessor _httpContextAccessor;
+
+        public PeopleController(ILogger<PeopleController> logger, IHttpContextAccessor httpContextAccessor)
+        {
+            _logger = logger;
+            _httpContextAccessor = httpContextAccessor;
+        }
+
         #region WebApi Methods
         [HttpGet("people")]
         public Document GetCollection()
@@ -22,29 +32,28 @@ namespace Blogging.WebService.Controllers
             /////////////////////////////////////////////////////
             // Build JSON API document
             /////////////////////////////////////////////////////
-            var currentRequestUri = this.Request.GetUri();
-            using (var documentContext = new BloggingDocumentContext(currentRequestUri))
-            {
-                var document = documentContext
-                    .NewDocument(currentRequestUri)
-                        .SetJsonApiVersion(JsonApiVersion.Version10)
+            var displayUrl = _httpContextAccessor.HttpContext.Request.GetDisplayUrl();
+            var currentRequestUri = new Uri(displayUrl);
+            using var documentContext = new BloggingDocumentContext(currentRequestUri);
+            var document = documentContext
+                .NewDocument(currentRequestUri)
+                    .SetJsonApiVersion(JsonApiVersion.Version10)
+                    .Links()
+                        .AddUpLink()
+                        .AddSelfLink()
+                    .LinksEnd()
+                    .ResourceCollection(people)
+                        .Relationships()
+                            .AddRelationship("articles", new[] { Keywords.Related })
+                            .AddRelationship("comments", new[] { Keywords.Related })
+                        .RelationshipsEnd()
                         .Links()
-                            .AddUpLink()
                             .AddSelfLink()
                         .LinksEnd()
-                        .ResourceCollection(people)
-                            .Relationships()
-                                .AddRelationship("articles", new[] { Keywords.Related })
-                                .AddRelationship("comments", new[] { Keywords.Related })
-                            .RelationshipsEnd()
-                            .Links()
-                                .AddSelfLink()
-                            .LinksEnd()
-                        .ResourceCollectionEnd()
-                    .WriteDocument();
+                    .ResourceCollectionEnd()
+                .WriteDocument();
 
-                return document;
-            }
+            return document;
         }
 
         [HttpGet("people/{id}")]
@@ -58,29 +67,28 @@ namespace Blogging.WebService.Controllers
             /////////////////////////////////////////////////////
             // Build JSON API document
             /////////////////////////////////////////////////////
-            var currentRequestUri = this.Request.GetUri();
-            using (var documentContext = new BloggingDocumentContext(currentRequestUri))
-            {
-                var document = documentContext
-                    .NewDocument(currentRequestUri)
-                        .SetJsonApiVersion(JsonApiVersion.Version10)
+            var displayUrl = _httpContextAccessor.HttpContext.Request.GetDisplayUrl();
+            var currentRequestUri = new Uri(displayUrl);
+            using var documentContext = new BloggingDocumentContext(currentRequestUri);
+            var document = documentContext
+                .NewDocument(currentRequestUri)
+                    .SetJsonApiVersion(JsonApiVersion.Version10)
+                    .Links()
+                        .AddUpLink()
+                        .AddSelfLink()
+                    .LinksEnd()
+                    .Resource(person)
+                        .Relationships()
+                            .AddRelationship("articles", new[] { Keywords.Related })
+                            .AddRelationship("comments", new[] { Keywords.Related })
+                        .RelationshipsEnd()
                         .Links()
-                            .AddUpLink()
                             .AddSelfLink()
                         .LinksEnd()
-                        .Resource(person)
-                            .Relationships()
-                                .AddRelationship("articles", new[] { Keywords.Related })
-                                .AddRelationship("comments", new[] { Keywords.Related })
-                            .RelationshipsEnd()
-                            .Links()
-                                .AddSelfLink()
-                            .LinksEnd()
-                        .ResourceEnd()
-                    .WriteDocument();
+                    .ResourceEnd()
+                .WriteDocument();
 
-                return document;
-            }
+            return document;
         }
 
         [HttpGet("people/{id}/articles")]
@@ -94,30 +102,29 @@ namespace Blogging.WebService.Controllers
             /////////////////////////////////////////////////////
             // Build JSON API document
             /////////////////////////////////////////////////////
-            var currentRequestUri = this.Request.GetUri();
-            using (var documentContext = new BloggingDocumentContext(currentRequestUri))
-            {
-                var document = documentContext
-                    .NewDocument(currentRequestUri)
-                        .SetJsonApiVersion(JsonApiVersion.Version10)
-                        .Links()
-                            .AddUpLink()
+            var displayUrl = _httpContextAccessor.HttpContext.Request.GetDisplayUrl();
+            var currentRequestUri = new Uri(displayUrl);
+            using var documentContext = new BloggingDocumentContext(currentRequestUri);
+            var document = documentContext
+                .NewDocument(currentRequestUri)
+                    .SetJsonApiVersion(JsonApiVersion.Version10)
+                    .Links()
+                        .AddUpLink()
+                        .AddSelfLink()
+                    .LinksEnd()
+                    .ResourceCollection(personToArticles)
+                        .Relationships()
+                            .AddRelationship("blog", new[] { Keywords.Related })
+                            .AddRelationship("author", new[] { Keywords.Related })
+                            .AddRelationship("comments", new[] { Keywords.Related })
+                        .RelationshipsEnd()
+                       .Links()
                             .AddSelfLink()
                         .LinksEnd()
-                        .ResourceCollection(personToArticles)
-                            .Relationships()
-                                .AddRelationship("blog", new[] { Keywords.Related })
-                                .AddRelationship("author", new[] { Keywords.Related })
-                                .AddRelationship("comments", new[] { Keywords.Related })
-                            .RelationshipsEnd()
-                           .Links()
-                                .AddSelfLink()
-                            .LinksEnd()
-                        .ResourceCollectionEnd()
-                    .WriteDocument();
+                    .ResourceCollectionEnd()
+                .WriteDocument();
 
-                return document;
-            }
+            return document;
         }
 
         [HttpGet("people/{id}/comments")]
@@ -131,29 +138,28 @@ namespace Blogging.WebService.Controllers
             /////////////////////////////////////////////////////
             // Build JSON API document
             /////////////////////////////////////////////////////
-            var currentRequestUri = this.Request.GetUri();
-            using (var documentContext = new BloggingDocumentContext(currentRequestUri))
-            {
-                var document = documentContext
-                    .NewDocument(currentRequestUri)
-                        .SetJsonApiVersion(JsonApiVersion.Version10)
+            var displayUrl = _httpContextAccessor.HttpContext.Request.GetDisplayUrl();
+            var currentRequestUri = new Uri(displayUrl);
+            using var documentContext = new BloggingDocumentContext(currentRequestUri);
+            var document = documentContext
+                .NewDocument(currentRequestUri)
+                    .SetJsonApiVersion(JsonApiVersion.Version10)
+                    .Links()
+                        .AddUpLink()
+                        .AddSelfLink()
+                    .LinksEnd()
+                    .ResourceCollection(personToComments)
+                        .Relationships()
+                            .AddRelationship("article", new[] { Keywords.Related })
+                            .AddRelationship("author", new[] { Keywords.Related })
+                        .RelationshipsEnd()
                         .Links()
-                            .AddUpLink()
                             .AddSelfLink()
                         .LinksEnd()
-                        .ResourceCollection(personToComments)
-                            .Relationships()
-                                .AddRelationship("article", new[] { Keywords.Related })
-                                .AddRelationship("author", new[] { Keywords.Related })
-                            .RelationshipsEnd()
-                            .Links()
-                                .AddSelfLink()
-                            .LinksEnd()
-                        .ResourceCollectionEnd()
-                    .WriteDocument();
+                    .ResourceCollectionEnd()
+                .WriteDocument();
 
-                return document;
-            }
+            return document;
         }
 
         [HttpPost("people")]

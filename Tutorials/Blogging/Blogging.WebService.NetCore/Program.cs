@@ -1,12 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore;
-using Microsoft.AspNetCore.Hosting;
+﻿using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Hosting;
+using Serilog;
+using System;
 
 namespace Blogging.WebService
 {
@@ -14,12 +10,46 @@ namespace Blogging.WebService
     {
         public static void Main(string[] args)
         {
-            BuildWebHost(args).Run();
+            try
+            {
+                CreateHostBuilder(args)
+                    .Build()
+                    .Run();
+            }
+            catch (Exception exception)
+            {
+                Log.Fatal(exception, "Host builder error");
+            }
+            finally
+            {
+                Log.CloseAndFlush();
+            }
         }
 
-        public static IWebHost BuildWebHost(string[] args) =>
-            WebHost.CreateDefaultBuilder(args)
-                .UseStartup<Startup>()
-                .Build();
+        public static IHostBuilder CreateHostBuilder(string[] args)
+        {
+            var hostBuilder = Host.CreateDefaultBuilder(args);
+
+            hostBuilder.ConfigureLogging((hostBuilderContext, loggingBuilder) =>
+            {
+                loggingBuilder.AddSerilog();
+            });
+
+            hostBuilder.ConfigureAppConfiguration((hostBuilderContext, configurationBuilder) =>
+            {
+                configurationBuilder.AddJsonFile("appsettings.json", false, true);
+                configurationBuilder.AddEnvironmentVariables();
+                configurationBuilder.AddCommandLine(args);
+            });
+
+            hostBuilder.ConfigureWebHostDefaults(webBuilder =>
+            {
+                webBuilder.UseIIS();
+                webBuilder.UseStartup<Startup>();
+                webBuilder.UseSerilog();
+            });
+
+            return hostBuilder;
+        }
     }
 }
